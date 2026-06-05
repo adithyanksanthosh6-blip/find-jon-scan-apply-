@@ -292,9 +292,9 @@ export async function POST(req: NextRequest) {
       );
 
       // Determine platform
-      const platform = platformNames.includes(job.platform)
+      const platform = (platformNames.includes(job.platform)
         ? job.platform
-        : platformNames[Math.floor(Math.random() * platformNames.length)];
+        : platformNames[Math.floor(Math.random() * platformNames.length)]) as "linkedin" | "indeed" | "naukri" | "pharmabharat";
 
       // Determine status
       let status: "applied" | "pending" | "failed" = "applied";
@@ -316,7 +316,7 @@ export async function POST(req: NextRequest) {
 
       await db.insert(jobs).values({
         userId,
-        platform: platform as "linkedin" | "indeed" | "naukri" | "pharmabharat",
+        platform,
         title: titleWithTag,
         company: job.company,
         location: job.location,
