@@ -293,9 +293,12 @@ export async function POST(req: NextRequest) {
 
       // Determine platform
       type PlatformType = "linkedin" | "indeed" | "naukri" | "pharmabharat";
-      const validPlatforms: PlatformType[] = ["linkedin", "indeed", "naukri", "pharmabharat"];
-      const rawPlatform = platformNames.includes(job.platform) ? job.platform : platformNames[Math.floor(Math.random() * platformNames.length)];
-      const platform: PlatformType = validPlatforms.includes(rawPlatform as PlatformType) ? (rawPlatform as PlatformType) : "indeed";
+      const validPlatforms = ["linkedin", "indeed", "naukri", "pharmabharat"];
+      const jobPlatform = job.platform as string;
+      const rawPlatform = validPlatforms.includes(jobPlatform) && (platformNames as string[]).includes(jobPlatform)
+        ? jobPlatform
+        : platformNames[Math.floor(Math.random() * platformNames.length)] as string;
+      const platform = (validPlatforms.includes(rawPlatform) ? rawPlatform : "indeed") as PlatformType;
 
       // Determine status
       let status: "applied" | "pending" | "failed" = "applied";
