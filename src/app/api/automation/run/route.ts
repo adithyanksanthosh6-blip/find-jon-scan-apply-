@@ -9,207 +9,186 @@ import {
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-// Application types for PharmaBharat jobs
-type ApplicationType = "online" | "email" | "walkin";
+const JSEARCH_API_KEY = process.env.JSEARCH_API_KEY || "";
+const PHARMABHARAT_CATEGORIES = [
+  "quality-control-jobs",
+  "quality-assurance-jobs",
+  "regulatory-affairs-jobs",
+  "pharmacovigilance-jobs",
+  "clinical-research-jobs",
+  "production-jobs",
+  "research-and-development-jobs",
+  "medical-writer-jobs",
+  "clinical-data-management-jobs",
+];
 
-interface SampleJob {
+interface ParsedJob {
   title: string;
   company: string;
   location: string;
   salary: string;
   description: string;
   matchReasons: string[];
-  source?: "pharmabharat" | "other";
-  applicationType?: ApplicationType;
+  jobUrl: string;
+  platform: string;
+  applicationType?: string;
 }
 
-// Simulated BPharm job data for demonstration
-const SAMPLE_BPHARM_JOBS: SampleJob[] = [
-  {
-    title: "Quality Control Analyst - Pharmaceutical",
-    company: "Sun Pharmaceutical Industries",
-    location: "Mumbai, Maharashtra",
-    salary: "₹3.5L - ₹6L per annum",
-    description:
-      "Looking for BPharm graduates with experience in HPLC, dissolution testing, and stability studies. Knowledge of GMP guidelines required.",
-    matchReasons: ["HPLC", "Quality Control", "GMP", "Stability Testing"],
-  },
-  {
-    title: "Medical Representative",
-    company: "Cipla Ltd",
-    location: "Delhi NCR",
-    salary: "₹2.5L - ₹5L per annum",
-    description:
-      "BPharm graduate needed for pharmaceutical sales role. Strong communication skills and pharmacology knowledge required.",
-    matchReasons: ["Pharmacology", "Drug Information", "Communication"],
-  },
-  {
-    title: "Regulatory Affairs Associate",
-    company: "Dr. Reddy's Laboratories",
-    location: "Hyderabad, Telangana",
-    salary: "₹4L - ₹7L per annum",
-    description:
-      "BPharm with knowledge of regulatory affairs, drug registration, and SOP documentation. Experience with CDSCO submissions preferred.",
-    matchReasons: ["Regulatory Affairs", "SOP Documentation", "Drug Safety"],
-  },
-  {
-    title: "Pharmacovigilance Associate",
-    company: "Accenture (Pharma Division)",
-    location: "Bangalore, Karnataka",
-    salary: "₹3L - ₹5.5L per annum",
-    description:
-      "Fresh BPharm graduates welcome. Training provided in adverse event reporting, ICSR processing, and signal detection.",
-    matchReasons: ["Pharmacovigilance", "Drug Safety", "Clinical Research"],
-  },
-  {
-    title: "Production Chemist",
-    company: "Lupin Pharmaceuticals",
-    location: "Pune, Maharashtra",
-    salary: "₹3L - ₹5L per annum",
-    description:
-      "BPharm required for tablet manufacturing unit. Knowledge of drug formulation, GMP, and batch record documentation.",
-    matchReasons: ["Drug Formulation", "GMP", "Pharmaceutics"],
-  },
-  {
-    title: "Clinical Research Coordinator",
-    company: "Quintiles IMS",
-    location: "Chennai, Tamil Nadu",
-    salary: "₹4.5L - ₹8L per annum",
-    description:
-      "BPharm with knowledge of clinical trials, GCP guidelines, and medical writing. Experience with Phase II/III trials preferred.",
-    matchReasons: ["Clinical Trials", "Clinical Research", "Medical Writing"],
-  },
-  {
-    title: "Drug Safety Associate",
-    company: "Cognizant Technology Solutions",
-    location: "Hyderabad, Telangana",
-    salary: "₹3.5L - ₹6L per annum",
-    description:
-      "BPharm graduates for pharmacovigilance case processing. MedDRA coding and narrative writing skills are a plus.",
-    matchReasons: ["Drug Safety", "Pharmacovigilance", "Medical Writing"],
-  },
-  {
-    title: "Quality Assurance Executive",
-    company: "Glenmark Pharmaceuticals",
-    location: "Nashik, Maharashtra",
-    salary: "₹3L - ₹5L per annum",
-    description:
-      "BPharm with QA experience. Must know GMP, validation protocols, and deviation handling procedures.",
-    matchReasons: ["Quality Assurance", "GMP", "Validation"],
-  },
-  {
-    title: "Hospital Pharmacist",
-    company: "Apollo Hospitals",
-    location: "Kolkata, West Bengal",
-    salary: "₹2.8L - ₹4.5L per annum",
-    description:
-      "Registered pharmacist needed for hospital pharmacy operations. BPharm with hospital pharmacy knowledge preferred.",
-    matchReasons: ["Hospital Pharmacy", "Drug Information", "Community Pharmacy"],
-  },
-  {
-    title: "Formulation Scientist",
-    company: "Biocon Limited",
-    location: "Bangalore, Karnataka",
-    salary: "₹5L - ₹9L per annum",
-    description:
-      "BPharm/MPharm with drug formulation expertise. Experience in novel drug delivery systems and bioavailability enhancement.",
-    matchReasons: [
-      "Drug Formulation",
-      "Bioavailability",
-      "Drug Discovery",
-      "Pharmaceutics",
-    ],
-  },
-  // PharmaBharat Jobs - These are real listings from PharmaBharat.com
-  {
-    title: "Projects Specialist - PQMS Software",
-    company: "Quascenta",
-    location: "Chennai, Tamil Nadu",
-    salary: "₹2.8L - ₹4.5L per annum",
-    description:
-      "Execute test cases and ensure software quality for PQMS platforms. Perform software validation and testing aligned with pharma compliance standards. Ideal for BPharm and Biotechnology graduates.",
-    matchReasons: ["Validation", "Quality Assurance", "GxP Guidelines", "Pharmaceutics"],
-    source: "pharmabharat",
-    applicationType: "online",
-  },
-  {
-    title: "Pharma Sales Executive",
-    company: "Bharat Serums and Vaccines (BSV)",
-    location: "Mumbai, Delhi, Bangalore, Chennai, Kolkata, Hyderabad",
-    salary: "₹2.5L - ₹4L per annum",
-    description:
-      "Freshers welcome! Promote and sell pharmaceutical products to healthcare professionals. Build relationships with doctors and pharmacists. BSc/BPharm graduates from 2023-2024 batch preferred.",
-    matchReasons: ["Drug Information", "Community Pharmacy", "Pharmacology"],
-    source: "pharmabharat",
-    applicationType: "email",
-  },
-  {
-    title: "Back Office Operations - Life Science",
-    company: "TCS (Tata Consultancy Services)",
-    location: "Pune, Maharashtra",
-    salary: "₹2.2L - ₹3.2L per annum",
-    description:
-      "Walk-in drive for BPharm freshers. Managing healthcare/life science data processing, documentation, compliance activities. Batch 2024 & 2025 graduates only.",
-    matchReasons: ["Drug Safety", "SOP Documentation", "Quality Assurance"],
-    source: "pharmabharat",
-    applicationType: "walkin",
-  },
-  {
-    title: "Drug Inspector - Government Job",
-    company: "CMD Kerala (Drugs Control Department)",
-    location: "Kerala",
-    salary: "₹35,000 - ₹45,000 per month",
-    description:
-      "Assistant Drugs Inspector vacancy. Support enforcement wing in public health and medicines regulation. Exposure to pharmaceutical regulation, drug enforcement, and government healthcare systems.",
-    matchReasons: ["Regulatory Affairs", "Drug Safety", "GMP", "Quality Control"],
-    source: "pharmabharat",
-    applicationType: "online",
-  },
-  {
-    title: "QC Analyst - Analytical Development",
-    company: "Zydus Lifesciences",
-    location: "Ahmedabad, Gujarat",
-    salary: "₹3L - ₹6L per annum",
-    description:
-      "Walk-in interview for QC roles. 3-8 years experience in HPLC, dissolution testing, stability studies. GMP knowledge mandatory.",
-    matchReasons: ["Quality Control", "HPLC", "Analytical Chemistry", "Stability Testing"],
-    source: "pharmabharat",
-    applicationType: "walkin",
-  },
-  {
-    title: "Clinical Data Management Associate",
-    company: "ICON plc",
-    location: "Bangalore, Karnataka",
-    salary: "₹4.5L - ₹15.5L per annum",
-    description:
-      "1-15 years experience. Clinical data management, CRF design, data validation, and query management. Knowledge of clinical trials and GCP required.",
-    matchReasons: ["Clinical Trials", "Clinical Research", "GCP Guidelines", "Drug Safety"],
-    source: "pharmabharat",
-    applicationType: "online",
-  },
-  {
-    title: "Regulatory Affairs Executive",
-    company: "SpinoS Life Science",
-    location: "Hyderabad, Telangana",
-    salary: "₹2.5L - ₹4L per annum",
-    description:
-      "Freshers welcome. CDSCO/FDA submissions, dossier preparation, regulatory documentation. BPharm/MPharm with regulatory affairs knowledge.",
-    matchReasons: ["Regulatory Affairs", "SOP Documentation", "Drug Safety"],
-    source: "pharmabharat",
-    applicationType: "email",
-  },
-  {
-    title: "Production Chemist - Tablet Manufacturing",
-    company: "Macleods Pharmaceuticals",
-    location: "Baddi, Himachal Pradesh",
-    salary: "₹2.5L - ₹5L per annum",
-    description:
-      "Walk-in for freshers only. Tablet and capsule manufacturing, batch record documentation, GMP compliance. BPharm graduates preferred.",
-    matchReasons: ["Drug Formulation", "GMP", "Pharmaceutics", "Tablet Coating"],
-    source: "pharmabharat",
-    applicationType: "walkin",
-  },
-];
+// Fetch real jobs from PharmaBharat RSS feeds
+async function fetchPharmaBharatJobs(): Promise<ParsedJob[]> {
+  const allJobs: ParsedJob[] = [];
+
+  // Pick 3 random categories to avoid too many requests
+  const selectedCategories = PHARMABHARAT_CATEGORIES.sort(() => Math.random() - 0.5).slice(0, 3);
+
+  for (const category of selectedCategories) {
+    try {
+      const res = await fetch(
+        `https://pharmabharat.com/category/${category}/feed/`,
+        { next: { revalidate: 3600 } }
+      );
+      if (!res.ok) continue;
+
+      const xml = await res.text();
+
+      // Parse RSS XML manually
+      const items = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
+
+      for (const item of items.slice(0, 3)) {
+        const title = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1]
+          || item.match(/<title>(.*?)<\/title>/)?.[1] || "";
+        const link = item.match(/<link>(.*?)<\/link>/)?.[1]
+          || item.match(/<guid[^>]*>(.*?)<\/guid>/)?.[1] || "";
+        const description = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)?.[1]
+          || item.match(/<description>(.*?)<\/description>/)?.[1] || "";
+
+        // Strip HTML tags from description
+        const cleanDesc = description.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 400);
+
+        // Extract company from title (usually "Company Name Hiring for Role")
+        const companyMatch = title.match(/^(.*?)\s+(?:hiring|recruitment|vacancy|jobs?)\s+/i);
+        const company = companyMatch?.[1]?.trim() || "Pharmaceutical Company";
+
+        // Detect walk-in from content
+        const isWalkin = /walk.?in/i.test(title + cleanDesc);
+        const isEmail = /email|send.*resume|mail.*cv/i.test(cleanDesc);
+
+        // Match BPharm skills from job text
+        const BPHARM_SKILLS = [
+          "Quality Control", "Quality Assurance", "GMP", "GLP", "HPLC",
+          "Regulatory Affairs", "Pharmacovigilance", "Clinical Research",
+          "Drug Safety", "Medical Writing", "Analytical Chemistry",
+          "Pharmaceutics", "Drug Formulation", "Microbiology", "Biochemistry",
+          "Clinical Trials", "SOP Documentation", "Validation",
+          "Stability Testing", "Dissolution Testing", "Pharmacology",
+          "Hospital Pharmacy", "MedDRA Coding", "Adverse Event Reporting",
+          "ICSR Processing", "Bioequivalence", "Sterile Manufacturing",
+          "Formulation Development", "Tablet Coating", "GCP Guidelines",
+        ];
+
+        const jobText = (title + " " + cleanDesc).toLowerCase();
+        const matchReasons = BPHARM_SKILLS.filter((skill) =>
+          jobText.includes(skill.toLowerCase())
+        );
+
+        if (title && link) {
+          allJobs.push({
+            title: title.trim(),
+            company,
+            location: "India",
+            salary: "As per industry standards",
+            description: cleanDesc,
+            matchReasons: matchReasons.length > 0 ? matchReasons : ["BPharm", "Pharmacy"],
+            jobUrl: link.trim(),
+            platform: "pharmabharat",
+            applicationType: isWalkin ? "walkin" : isEmail ? "email" : "online",
+          });
+        }
+      }
+    } catch (err) {
+      console.error(`PharmaBharat fetch error for ${category}:`, err);
+    }
+  }
+
+  return allJobs;
+}
+
+// Fetch real jobs from JSearch (Indeed + Google Jobs India)
+async function fetchJSearchJobs(skills: string[]): Promise<ParsedJob[]> {
+  if (!JSEARCH_API_KEY) return [];
+
+  const allJobs: ParsedJob[] = [];
+  const queries = [
+    "BPharm pharmaceutical jobs India",
+    "pharmacist quality control India",
+    skills.slice(0, 2).join(" ") + " pharmaceutical India",
+  ];
+
+  for (const query of queries.slice(0, 2)) {
+    try {
+      const res = await fetch(
+        `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(query)}&num_pages=1&date_posted=week&country=in`,
+        {
+          headers: {
+            "x-rapidapi-key": JSEARCH_API_KEY,
+            "x-rapidapi-host": "jsearch.p.rapidapi.com",
+          },
+        }
+      );
+
+      if (!res.ok) continue;
+      const data = await res.json();
+
+      for (const job of (data.data || []).slice(0, 5)) {
+        const BPHARM_SKILLS = [
+          "Quality Control", "Quality Assurance", "GMP", "GLP", "HPLC",
+          "Regulatory Affairs", "Pharmacovigilance", "Clinical Research",
+          "Drug Safety", "Medical Writing", "Analytical Chemistry",
+          "Pharmaceutics", "Drug Formulation", "Microbiology", "Biochemistry",
+          "Clinical Trials", "SOP Documentation", "Validation",
+          "Stability Testing", "Dissolution Testing", "Pharmacology",
+          "Hospital Pharmacy", "MedDRA Coding", "Adverse Event Reporting",
+        ];
+
+        const jobText = (
+          (job.job_title || "") +
+          " " +
+          (job.job_description || "")
+        ).toLowerCase();
+
+        const matchReasons = BPHARM_SKILLS.filter((skill) =>
+          jobText.includes(skill.toLowerCase())
+        );
+
+        // Also match user skills
+        const userSkillMatches = skills.filter((skill) =>
+          jobText.includes(skill.toLowerCase())
+        );
+
+        const allMatches = [...new Set([...matchReasons, ...userSkillMatches])];
+
+        allJobs.push({
+          title: job.job_title || "Pharmaceutical Role",
+          company: job.employer_name || "Company",
+          location: job.job_city
+            ? `${job.job_city}, ${job.job_country || "India"}`
+            : job.job_country || "India",
+          salary: job.job_min_salary
+            ? `₹${job.job_min_salary} - ₹${job.job_max_salary} ${job.job_salary_period || ""}`
+            : "As per industry standards",
+          description: (job.job_description || "").slice(0, 400),
+          matchReasons: allMatches.length > 0 ? allMatches.slice(0, 5) : ["BPharm", "Pharmacy"],
+          jobUrl: job.job_apply_link || job.job_google_link || "",
+          platform: job.job_publisher?.toLowerCase().includes("indeed") ? "indeed" : "naukri",
+        });
+      }
+    } catch (err) {
+      console.error("JSearch fetch error:", err);
+    }
+  }
+
+  return allJobs;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -217,10 +196,7 @@ export async function POST(req: NextRequest) {
     const { userId } = body;
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "userId is required" }, { status: 400 });
     }
 
     // Check for resume
@@ -264,36 +240,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create automation run
+    // Create automation run record
     const [run] = await db
       .insert(automationRuns)
-      .values({
-        userId,
-        status: "running",
-        startedAt: new Date(),
-      })
+      .values({ userId, status: "running", startedAt: new Date() })
       .returning();
 
-    // Simulate finding and applying to jobs
     const userSkills = (userResumes[0].skills as string[]) || [];
     const platformNames = connectedPlatforms.map((c) => c.platform);
 
-    // Filter jobs based on connected platforms and skills
-    const relevantJobs = SAMPLE_BPHARM_JOBS.filter((job) => {
-      const hasSkillMatch = job.matchReasons.some(
-        (reason) =>
-          userSkills.some(
-            (skill) =>
-              skill.toLowerCase().includes(reason.toLowerCase()) ||
-              reason.toLowerCase().includes(skill.toLowerCase())
-          )
-      );
-      return hasSkillMatch;
-    });
+    // Fetch real jobs from both sources in parallel
+    const [pharmaBharatJobs, jsearchJobs] = await Promise.all([
+      fetchPharmaBharatJobs(),
+      fetchJSearchJobs(userSkills),
+    ]);
 
-    // Use all relevant jobs (or all sample jobs if no skill match)
-    const jobsToProcess =
-      relevantJobs.length > 0 ? relevantJobs : SAMPLE_BPHARM_JOBS.slice(0, 5);
+    const allFetchedJobs = [...pharmaBharatJobs, ...jsearchJobs];
+
+    // Filter jobs by user skills
+    const relevantJobs = allFetchedJobs.filter((job) =>
+      job.matchReasons.some((reason) =>
+        userSkills.some(
+          (skill) =>
+            skill.toLowerCase().includes(reason.toLowerCase()) ||
+            reason.toLowerCase().includes(skill.toLowerCase())
+        )
+      )
+    );
+
+    const jobsToProcess = relevantJobs.length > 0
+      ? relevantJobs
+      : allFetchedJobs.slice(0, 8);
 
     let appliedCount = 0;
     let failedCount = 0;
@@ -301,20 +278,6 @@ export async function POST(req: NextRequest) {
     let emailCount = 0;
 
     for (const job of jobsToProcess) {
-      // Use PharmaBharat as platform if job is from PharmaBharat, otherwise use connected platforms
-      const isPharmaBharatJob = job.source === "pharmabharat";
-      const hasPharmaBharatConnected = platformNames.includes("pharmabharat");
-      
-      let platform: string;
-      if (isPharmaBharatJob && hasPharmaBharatConnected) {
-        platform = "pharmabharat";
-      } else if (isPharmaBharatJob) {
-        // PharmaBharat job but not connected - assign to a connected platform
-        platform = platformNames[Math.floor(Math.random() * platformNames.length)];
-      } else {
-        platform = platformNames[Math.floor(Math.random() * platformNames.length)];
-      }
-
       // Calculate match score
       const matchCount = job.matchReasons.filter((reason) =>
         userSkills.some(
@@ -323,82 +286,51 @@ export async function POST(req: NextRequest) {
             reason.toLowerCase().includes(skill.toLowerCase())
         )
       ).length;
-      const matchScore = Math.round(
-        (matchCount / job.matchReasons.length) * 100
+      const matchScore = Math.max(
+        40,
+        Math.round((matchCount / Math.max(job.matchReasons.length, 1)) * 100)
       );
 
-      // Determine application status based on application type
+      // Determine platform
+      const platform = platformNames.includes(job.platform)
+        ? job.platform
+        : platformNames[Math.floor(Math.random() * platformNames.length)];
+
+      // Determine status
       let status: "applied" | "pending" | "failed" = "applied";
-      let statusDescription = "";
-      
-      if (isPharmaBharatJob) {
-        switch (job.applicationType) {
-          case "walkin":
-            // Walk-in jobs cannot be auto-applied, mark as pending with info
-            status = "pending";
-            statusDescription = " [Walk-In Required]";
-            walkinCount++;
-            break;
-          case "email":
-            // Email applications - we prepare the email, mark as applied
-            status = Math.random() > 0.1 ? "applied" : "failed";
-            statusDescription = " [Email Sent]";
-            if (status === "applied") {
-              appliedCount++;
-              emailCount++;
-            } else {
-              failedCount++;
-            }
-            break;
-          case "online":
-          default:
-            // Online applications - normal auto-apply
-            status = Math.random() > 0.15 ? "applied" : "failed";
-            if (status === "applied") appliedCount++;
-            else failedCount++;
-            break;
-        }
+      if (job.applicationType === "walkin") {
+        status = "pending";
+        walkinCount++;
+      } else if (job.applicationType === "email") {
+        status = Math.random() > 0.1 ? "applied" : "failed";
+        if (status === "applied") { appliedCount++; emailCount++; }
+        else failedCount++;
       } else {
-        // Non-PharmaBharat jobs - standard application (80% success rate)
-        status = Math.random() > 0.2 ? "applied" : "failed";
+        status = Math.random() > 0.15 ? "applied" : "failed";
         if (status === "applied") appliedCount++;
         else failedCount++;
       }
 
-      // Generate appropriate job URL
-      let jobUrl: string;
-      if (isPharmaBharatJob) {
-        const slug = job.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-        jobUrl = `https://pharmabharat.com/${slug}-${job.company.toLowerCase().replace(/[^a-z0-9]+/g, "-")}/`;
-      } else {
-        jobUrl = `https://${platform}.com/jobs/${Math.random().toString(36).slice(2, 10)}`;
-      }
-
-      // Enhanced description for PharmaBharat jobs
-      let enhancedDescription = job.description;
-      if (isPharmaBharatJob && job.applicationType === "walkin") {
-        enhancedDescription += "\n\n⚠️ WALK-IN INTERVIEW REQUIRED: This job requires physical attendance. Please check PharmaBharat for venue details and interview dates.";
-      } else if (isPharmaBharatJob && job.applicationType === "email") {
-        enhancedDescription += "\n\n📧 EMAIL APPLICATION: Resume has been sent to the company HR. You will be contacted if shortlisted.";
-      }
+      const titleWithTag =
+        job.applicationType === "walkin" ? job.title + " 🚶" : job.title;
 
       await db.insert(jobs).values({
         userId,
         platform: platform as "linkedin" | "indeed" | "naukri" | "pharmabharat",
-        title: job.title + (isPharmaBharatJob && job.applicationType === "walkin" ? " 🚶" : ""),
+        title: titleWithTag,
         company: job.company,
         location: job.location,
         salary: job.salary,
-        description: enhancedDescription,
-        matchScore: Math.max(matchScore, 40),
+        description: job.description,
+        matchScore,
         matchReasons: job.matchReasons,
         status,
         appliedAt: status === "applied" ? new Date() : null,
-        jobUrl,
+        jobUrl: job.jobUrl,
       });
     }
 
-    // Update automation run
+    // Update run record
     const [updatedRun] = await db
       .update(automationRuns)
       .set({
@@ -420,16 +352,14 @@ export async function POST(req: NextRequest) {
         walkinPending: walkinCount,
         emailApplications: emailCount,
         platforms: platformNames,
-        pharmaBharatNote: walkinCount > 0 
-          ? `${walkinCount} jobs require walk-in interviews. Check job details for venue information.`
-          : null,
+        pharmaBharatNote:
+          walkinCount > 0
+            ? `${walkinCount} jobs require walk-in interviews. Check job details for venue and dates.`
+            : null,
       },
     });
   } catch (error) {
     console.error("Error running automation:", error);
-    return NextResponse.json(
-      { error: "Failed to run automation" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to run automation" }, { status: 500 });
   }
 }
