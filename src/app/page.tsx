@@ -120,7 +120,7 @@ export default function Home() {
           <JobsPage userId={user.id} />
          )}
        {currentPage === "walkin" && (
-       <WalkInPage userId={user.id} />
+       <WalkInPage />
         )}
       </main>
     </>
