@@ -9,6 +9,7 @@ import PlatformsPage from "@/components/PlatformsPage";
 import ResumePage from "@/components/ResumePage";
 import SearchLinksPage from "@/components/SearchLinksPage";
 import JobsPage from "@/components/JobsPage";
+import WalkInPage from "@/components/WalkInPage";
 
 interface User {
   id: string;

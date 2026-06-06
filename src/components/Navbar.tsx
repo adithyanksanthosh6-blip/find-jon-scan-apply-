@@ -18,6 +18,7 @@ export default function Navbar({ currentPage, onNavigate, userName }: NavbarProp
     { id: "resume", label: "CV Analysis", icon: "📄" },
     { id: "search", label: "Job Search", icon: "🔍" },
     { id: "jobs", label: "Applications", icon: "💼" },
+    { id: "walkin", label: "Walk-In", icon: "🚶" },
   ];
 
   return (

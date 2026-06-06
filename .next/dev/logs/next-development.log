@@ -1,3 +1,4 @@
 {"timestamp":"00:00:03.984","source":"Server","level":"LOG","message":""}
 {"timestamp":"00:22:08.441","source":"Server","level":"LOG","message":"○ Compiling / ..."}
 {"timestamp":"00:22:16.428","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"01:24:10.958","source":"Server","level":"LOG","message":"  Reload env: .env"}
