@@ -118,6 +118,9 @@ export default function Home() {
         )}
         {currentPage === "jobs" && (
           <JobsPage userId={user.id} />
+         )}
+       {currentPage === "walkin" && (
+       <WalkInPage userId={user.id} />
         )}
       </main>
     </>
