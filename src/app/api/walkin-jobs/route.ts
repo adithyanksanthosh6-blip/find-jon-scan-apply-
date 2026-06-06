@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
 const WALKIN_FEEDS = [
-  "https://pharmabharat.com/category/walk-in-interview/feed/",
-  "https://pharmabharat.com/feed/",
+    "https://pharmabharat.com/feed/",
 ];
 
 interface WalkinJob {
@@ -65,12 +64,15 @@ export async function GET() {
         const cleanContent = content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
         // Only include walk-in jobs
-        const isWalkin =
-          title.toLowerCase().includes("walk") ||
-          cleanContent.toLowerCase().includes("walk-in") ||
-          cleanContent.toLowerCase().includes("walk in interview") ||
-          feedUrl.includes("walk-in");
+       const text = (title + " " + cleanContent).toLowerCase();
 
+const isWalkin =
+  text.includes("walk in") ||
+  text.includes("walk-in") ||
+  text.includes("walkin") ||
+  text.includes("interview venue") ||
+  text.includes("hiring drive") ||
+  text.includes("direct interview");
         if (!isWalkin || !title || !link) continue;
 
         // Extract company name from title
